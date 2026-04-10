@@ -6,6 +6,8 @@ from config import (
     AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDINGS,
     CHUNK_SIZE, CHUNK_OVERLAP, VECTOR_STORE_PATH
 )
+import shutil
+import os
 
 def load_and_split_pdf(pdf_path: str):
     loader = PyPDFLoader(pdf_path)
@@ -17,14 +19,16 @@ def load_and_split_pdf(pdf_path: str):
     return text_splitter.split_documents(documents)
 
 
-def create_vector_store(documents): 
+def create_vector_store(documents):
+
+    if os.path.exists(VECTOR_STORE_PATH):
+        shutil.rmtree(VECTOR_STORE_PATH)
+
     embeddings = AzureOpenAIEmbeddings(
         azure_endpoint = AZURE_OPENAI_ENDPOINT,
         api_key = AZURE_OPENAI_API_KEY,
         deployment = AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDINGS
     )
-
-    #print('\nChaves OK\n')
 
     vector_store = Chroma.from_documents(
         documents = documents,
@@ -32,10 +36,4 @@ def create_vector_store(documents):
         persist_directory = VECTOR_STORE_PATH
     )
 
-    #vector_store.persist(): Pelo que entendi, já roda automaticamente nas versões recentes.
     return vector_store
-
-#pdf_path = "Atos-2024.pdf"
-#docs = load_and_split_pdf(pdf_path)
-#vector_store = create_vector_store(docs)
-#print(f"\nVectorDB OK. {len(docs)} chunks.\n")
