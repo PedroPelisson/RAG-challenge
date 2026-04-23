@@ -8,6 +8,7 @@ from config import (
     AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT_NAME_CHAT
 )
 
+#Dicionario que armazena o historico do session ID
 conversation_history = {}
 
 def create_rag_chain_v2(hybrid_retriever):

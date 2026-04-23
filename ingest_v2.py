@@ -27,15 +27,16 @@ def load_and_split_pdf_semantic(pdf_path: str):
 
     semantic_splitter = SemanticChunker (
         embeddings= embeddings,
-        breakpoint_threshold_type = 'percentile'
+        breakpoint_threshold_type = 'percentile',
+        breakpoint_threshold_amount= 80
     )
 
     chunks = semantic_splitter.split_documents(documents)
     return chunks
 
 def create_vector_store_v2(documents):
-    if os.path.exists(VECTOR_STORE_PATH):
-        shutil.rmtree(VECTOR_STORE_PATH)
+    '''if os.path.exists(VECTOR_STORE_PATH):
+        shutil.rmtree(VECTOR_STORE_PATH)'''
 
     embeddings = get_embeddings()
 

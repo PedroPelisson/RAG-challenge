@@ -21,8 +21,8 @@ def load_and_split_pdf(pdf_path: str):
 
 def create_vector_store(documents):
 
-    if os.path.exists(VECTOR_STORE_PATH):
-        shutil.rmtree(VECTOR_STORE_PATH)
+    '''if os.path.exists(VECTOR_STORE_PATH):
+        shutil.rmtree(VECTOR_STORE_PATH)'''
 
     embeddings = AzureOpenAIEmbeddings(
         azure_endpoint = AZURE_OPENAI_ENDPOINT,
