@@ -32,8 +32,7 @@ def create_vector_store(documents):
 
     vector_store = Chroma.from_documents(
         documents = documents,
-        embedding = embeddings,
-        persist_directory = VECTOR_STORE_PATH
+        embedding = embeddings
     )
 
     return vector_store

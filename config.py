@@ -15,5 +15,7 @@ VECTOR_STORE_PATH = 'chroma_db'
 
 UPLOAD_FOLDER = "uploads"
 
+HASHES_FILE = "hashes.json"
+
 if not AZURE_OPENAI_API_KEY or not AZURE_OPENAI_ENDPOINT:
     print("Problema com a chave ou endpoint.")

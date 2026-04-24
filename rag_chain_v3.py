@@ -1,7 +1,5 @@
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
-from ingest_v2 import get_embeddings
-import numpy as np
 from typing import List
 from langchain_openai import AzureChatOpenAI
 from langchain_classic.chains import create_history_aware_retriever, create_retrieval_chain
@@ -9,49 +7,56 @@ from langchain_classic.chains.combine_documents import create_stuff_documents_ch
 from langchain_classic.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
+from ingest_v3 import get_all_companies
 from config import (
     AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT_NAME_CHAT
 )
 
 class ClusteredRetriever(BaseRetriever):
     vector_store: object
-    centroids:object
-    n_clusters:int
-    top_clusters: int = 2 # QUANTO CLUISTERS CONSULTAR
-    top_k: int = 5 # CHUNKS QUE RETORNA, TIPO KWARGS = 5
+    companies:list
+    top_k: int = 5
 
     class Config:
-        arbitrary_types_allowed = True # PERMITE NUMPY ARRAYS. PRECISA PRO KMEANS
+        arbitrary_types_allowed = True
 
-    #=======================================================================================
-    #                                   ESTUDAR MAIS
-    #=======================================================================================
-
-    def _get_relevant_documents(self, query: str) -> List[Document]:
-        #PRIMEIRO PRECISO DESCOBRIR QUAL CLUSTER É RELEVANTE
-        #CONVERTE A PERGUNTA EM VETOR
-        embeddings_model=get_embeddings()
-        query_vector=embeddings_model.embed_query(query)
-        query_array=np.array(query_vector)
-
-        #AGORA CALCULAR A DISTANCIA DO VETOR DA PERGUNTA
-        distances = []
-        for i, centroid in enumerate(self.centroids):
-            dist = np.linalg.norm(query_array - centroid)
-            distances.append((i, dist))
-
-        #ORDENAR AS DISTANCIAS
-        distances.sort(key=lambda x: x[1])
-        best_clusters = [cluster_id for cluster_id, dist in distances [:self.top_clusters]]
-
-        #BUSCAR AS CHUNKS DOS BEST CLUSTERS
-        results = self.vector_store.similarity_search(
-            query,
-            k=self.top_k,
-            filter={'cluster_id': {"$in": best_clusters}}
+    def _identify_companies_in_query(self, query: str) -> list:
+        llm = AzureChatOpenAI(
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,
+            api_key=AZURE_OPENAI_API_KEY,
+            azure_deployment=AZURE_OPENAI_DEPLOYMENT_NAME_CHAT,
+            api_version="2023-12-01-preview",
+            temperature=0
         )
 
-        return results
+        prompt = (
+            "Você tem acesso a documentos das seguintes empresas:\n"
+            f"{', '.join(self.companies)}\n\n"
+            "Leia a pergunta abaixo e identifique quais dessas empresas a pergunta menciona.\n"
+            "Responda APENAS com os nomes separados por vírgula. Sem explicações.\n"
+            "Se a pergunta não mencionar nenhuma empresa específica, responda com TODAS as empresas da lista.\n\n"
+            f"Pergunta: {query}")
+
+        response =  llm.invoke(prompt)
+        mentioned = [name.strip() for name in response.content.strip().split(',')]
+        
+        valid = [name for name in mentioned if name in self.companies] #So as que realmente exitem no chroma
+        if not valid: #se nenhuma for valida, busca todas
+            valid = self.companies
+        return valid
+
+    def _get_relevant_documents(self, query: str) -> List[Document]:
+        target_companies = self._identify_companies_in_query(query)
+        all_results = []
+        for company in target_companies:
+            results = self.vector_store.similarity_search(
+                query,
+                k=self.top_k,
+                filter={'company': company}
+            )
+            all_results.extend(results)
+
+        return all_results
 
 conversation_history_v3 = {}
 

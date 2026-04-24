@@ -218,8 +218,6 @@ input[type="file"]::file-selector-button {
 }
 
 .btn-purple {
-  position: absolute;
-  right: 1.25rem;
   background-color: #6925F0;
   color: #FFF;
   font-family: 'Inter', sans-serif;
@@ -232,6 +230,11 @@ input[type="file"]::file-selector-button {
   transition: all 0.2s ease;
 }
 
+.input-section .btn-purple {
+  position: absolute;
+  right: 1.25rem;
+}
+
 .btn-purple:hover {
   background-color: #3F0CA7;
 }
@@ -240,4 +243,18 @@ input[type="file"]::file-selector-button {
   color: #7A777F;
   text-align: center;
   font-size: 1rem;
+}
+
+.decision-section {
+  background-color: #E0DCE8;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.decision-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
