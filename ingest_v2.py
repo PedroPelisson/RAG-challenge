@@ -87,15 +87,18 @@ def load_existing_vector_store():
     )
     return vector_store
 
-def create_hybrid_retriever(vector_store, documents):
-    semantic_retriever = vector_store.as_retriever(search_kwargs={'k': 5})
+def create_hybrid_retriever(vector_store, documents, chunk_ids=None):
+    search_kwargs = {'k': 5}
+    if chunk_ids:
+        search_kwargs['filter'] = {'chunk_id': {'$in': chunk_ids}}
+    semantic_retriever = vector_store.as_retriever(search_kwargs=search_kwargs)
     
     bm25_retriever = BM25Retriever.from_documents(documents)
     bm25_retriever.k = 5
-
+    
     hybrid_retriever = EnsembleRetriever(
         retrievers = [semantic_retriever, bm25_retriever],
-        weights = [0.3, 0.7]
+        weights = [0.4, 0.6]
     )
 
     return hybrid_retriever

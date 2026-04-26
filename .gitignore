@@ -1,3 +1,4 @@
 .env
 uploads/
 chroma_db/
+hashes.json

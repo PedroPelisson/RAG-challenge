@@ -13,6 +13,32 @@ function App() {
   const [pendingDecision, setPendingDecision] = useState(null); // NOVO: guarda conflitos de hash
   const API_URL = 'http://localhost:8000';
 
+  const parseResponse = (text) => {
+    let thinkMatch = text.match(/<pensamento>\s*([\s\S]*?)\s*<\/pensamento>/i);
+    let answerMatch = text.match(/<resposta>\s*([\s\S]*?)\s*<\/resposta>/i);
+
+    if (!answerMatch) {
+      answerMatch = text.match(/<resposta>\s*([\s\S]*)/i);
+    }
+
+    if (!thinkMatch) {
+      thinkMatch = text.match(/<pensamento>\s*([\s\S]*?)(?=<resposta>|$)/i);
+    }
+
+    if (answerMatch) {
+      return {
+        thinking: thinkMatch ? thinkMatch[1].trim() : '',
+        answer: answerMatch[1].trim()
+      };
+    }
+
+    const cleanText = text
+      .replace(/<\/?pensamento>/gi, '')
+      .replace(/<\/?resposta>/gi, '')
+      .trim();
+    return { thinking: '', answer: cleanText };
+  };
+
   const handleStrategyChange = (e) => {
     setStrategy(e.target.value);
     setSessionId(null);
@@ -61,7 +87,6 @@ function App() {
         setSessionId(data.session_id);
         setUploadInfo(data);
       }
-        
 
     } catch (err) {
       alert('Erro de conexão')
@@ -135,7 +160,46 @@ function App() {
     setLoading(false)
   }
 
-  const handleSend = async () => {
+const handleDeleteCompany = async (company) => {
+  const confirmed = window.confirm(
+      `Tem certeza que deseja remover "${company}" do banco?\n\nTodos os chunks, hashes e metadados dessa empresa serão excluídos permanentemente.`
+    );
+
+    if (!confirmed) return;
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${API_URL}/delete-company`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company: company }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert('Erro: ' + error.detail);
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+
+      setUploadInfo((prev) => ({
+        ...prev,
+        companies: data.remaining_companies,
+        message: `"${company}" removida. ${data.chunks_removed} chunks excluídos.`
+      }));
+
+    } catch (err) {
+      alert('Erro de conexão');
+    }
+
+    setLoading(false);
+  };
+
+
+const handleSend = async () => {
     if (!question.trim()) return;
     if (!sessionId) {
       alert('Faça um upload');
@@ -165,16 +229,31 @@ function App() {
         return;
       }
 
-      const data = await response.json()
-      const botMessage = { role: 'bot', text: data.answer};
-      setMessage((prev) => [...prev, botMessage]);
+      const data = await response.json();
+
+      if (data.strategy === 'v3' && data.results) {
+        const botMessages = data.results.map((r) => ({
+          role: 'bot',
+          text: r.answer,
+          company: r.company,
+          context_docs: r.context_docs || []
+        }));
+        setMessage((prev) => [...prev, ...botMessages]);
+      } else {
+        const botMessage = {
+          role: 'bot',
+          text: data.answer,
+          context_docs: data.context_docs || []
+        };
+        setMessage((prev) => [...prev, botMessage]);
+      }
 
     } catch (err) {
       const errorMessage = { role: 'bot', text: 'Erro de conexão' };
       setMessage((prev) => [...prev, errorMessage]);
     }
 
-    setLoading(false)
+    setLoading(false);
   }
 
   const handleKeyPress = (e) => {
@@ -183,6 +262,58 @@ function App() {
     }
   };
 
+const BotMessage = ({ msg }) => {
+  const [showThinking, setShowThinking] = useState(false);
+  const parsed = parseResponse(msg.text);
+
+  return (
+    <div className='message bot'>
+      {msg.company && (
+        <div className='company-tag'>{msg.company}</div>
+      )}
+
+      <strong>Greg:</strong>
+
+       {(parsed.thinking || (msg.context_docs && msg.context_docs.length > 0)) && (
+        <button
+          className='btn-thinking'
+          onClick={() => setShowThinking(!showThinking)}
+        >
+          {showThinking ? '−' : '+'}
+        </button>
+      )}
+
+      {showThinking && (
+        <div className='thinking-section'>
+          {parsed.thinking && (
+            <div className='thinking-content'>
+              <strong>Raciocínio:</strong>
+              <ReactMarkdown>{parsed.thinking}</ReactMarkdown>
+            </div>
+          )}
+          {msg.context_docs && msg.context_docs.length > 0 && (
+            <div className='chunks-content'>
+              <strong>Chunks selecionados:</strong>
+              {msg.context_docs.map((doc, i) => (
+                <div key={i} className='chunk-item'>
+                  <span className='chunk-tag'>
+                    {doc.company && `[${doc.company}]`} Chunk {i + 1}
+                  </span>
+                  <p>{doc.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className='final-answer'>
+        <ReactMarkdown>{parsed.answer}</ReactMarkdown>
+      </div>
+    </div>
+  );
+};
+
   return (
     <div className='app'>
       <aside className='sidebar'>
@@ -190,7 +321,6 @@ function App() {
         <h1>Missão RAG</h1>
 
         <div className='config-section'>
-
           <div className='strategy-selector'>
             <label>Estratégia: </label>
             <select
@@ -203,6 +333,7 @@ function App() {
               <option value='v3'>v3 - Banco Completo (Por Empresa)</option>
             </select>
           </div>
+
           {strategy !== 'v3' && (
             <div className='upload-section'>
               <input
@@ -217,6 +348,7 @@ function App() {
               </button>
             </div>
           )}
+
           {strategy === 'v3' && (
             <div className='upload-section'>
               <p>V3 consulta todos os documentos já processados.</p>
@@ -225,6 +357,7 @@ function App() {
               </button>
             </div>
           )}
+
           {pendingDecision && (
             <div className='decision-section'>
               <p><strong>Arquivo já processado anteriormente!</strong></p>
@@ -242,6 +375,7 @@ function App() {
               </div>
             </div>
           )}
+
           {uploadInfo && (
             <div className='upload-info'>
               {uploadInfo.status === 'ready' && strategy === 'v3' ? (
@@ -250,7 +384,17 @@ function App() {
                   <p>Empresas disponíveis:</p>
                   <ul>
                     {uploadInfo.companies && uploadInfo.companies.map((name, i) => (
-                      <li key={i}>{name}</li>
+                      <li key={i} className='company-list-item'>
+                        <span>{name}</span>
+                        <button
+                          className='btn-delete-company'
+                          onClick={() => handleDeleteCompany(name)}
+                          disabled={loading}
+                          title={`Remover ${name}`}
+                        >
+                          ✕
+                        </button>
+                      </li>
                     ))}
                   </ul>
                 </>
@@ -280,10 +424,14 @@ function App() {
               <p className='empty-chat'></p>
             )}
             {message.map((msg, index) => (
-              <div key={index} className={`message ${msg.role}`}>
-                <strong>{msg.role === 'user' ? 'Você: ' : 'Greg: '}</strong>
-                {msg.role === 'bot' ? <ReactMarkdown>{msg.text}</ReactMarkdown> : <p>{msg.text}</p>}
-              </div>
+              msg.role === 'user' ? (
+                <div key={index} className='message user'>
+                  <strong>Você: </strong>
+                  <p>{msg.text}</p>
+                </div>
+              ) : (
+                <BotMessage key={index} msg={msg} />
+              )
             ))}
             {loading && sessionId && (
               <div className='message-bot'>

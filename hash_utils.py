@@ -55,3 +55,21 @@ def search_hash(file_hash):
 
     hashes = load_hashes()
     return hashes.get(file_hash, None)
+
+def delete_hashes_by_company(company):
+    hashes = load_hashes()
+
+    chunk_ids_to_delete = []
+    hashes_to_remove = []
+
+    for file_hash, info in hashes.items():
+        if info.get('company') == company:
+            chunk_ids_to_delete.extend(info.get('chunks_ids', []))
+            hashes_to_remove.append(file_hash)
+
+    for file_hash in hashes_to_remove:
+        del hashes[file_hash]
+
+    save_hashes(hashes)
+
+    return chunk_ids_to_delete

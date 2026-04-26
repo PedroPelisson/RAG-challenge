@@ -258,3 +258,105 @@ input[type="file"]::file-selector-button {
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
+
+.btn-thinking {
+  background-color: #6c5ce7;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-thinking:hover {
+  background-color: #5a4bd1;
+}
+
+.thinking-section {
+  background-color: #1e1e2e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  font-size: 0.85em;
+  color: #aaa;
+}
+
+.thinking-content {
+  margin-bottom: 10px;
+}
+
+.chunks-content {
+  border-top: 1px solid #333;
+  padding-top: 8px;
+}
+
+.chunk-item {
+  background-color: #2a2a3e;
+  border-radius: 6px;
+  padding: 8px;
+  margin: 6px 0;
+}
+
+.chunk-tag {
+  background-color: #6c5ce7;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.final-answer {
+  margin-top: 8px;
+}
+
+.company-tag {
+  background-color: #6925F0;
+  color: #FFF;
+  padding: 2px 10px;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.company-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.btn-delete-company {
+  background-color: transparent;
+  color: #7A777F;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-delete-company:hover {
+  background-color: #e74c3c;
+  color: #FFF;
+}
+
+.btn-delete-company:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
